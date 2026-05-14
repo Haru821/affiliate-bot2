@@ -1,4 +1,4 @@
-name: Daily Reddit Collector
+name: Daily Affiliate Bot
 
 on:
   schedule:
@@ -9,7 +9,10 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+      HATENA_ID:       ${{ secrets.HATENA_ID }}
+      HATENA_API_KEY:  ${{ secrets.HATENA_API_KEY }}
+      HATENA_BLOG_ID:  ${{ secrets.HATENA_BLOG_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +29,9 @@ jobs:
 
       - name: Run generator
         run: python generator.py
+
+      - name: Run publisher
+        run: python publisher.py
 
       - name: Save results
         uses: actions/upload-artifact@v4
