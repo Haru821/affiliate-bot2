@@ -23,7 +23,7 @@ jobs:
         run: python collector.py
 
       - name: Save results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reddit-data
           path: raw_data_*.json
