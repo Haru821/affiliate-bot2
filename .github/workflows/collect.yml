@@ -9,10 +9,14 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     env:
-      GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
-      HATENA_ID:       ${{ secrets.HATENA_ID }}
-      HATENA_API_KEY:  ${{ secrets.HATENA_API_KEY }}
-      HATENA_BLOG_ID:  ${{ secrets.HATENA_BLOG_ID }}
+      GEMINI_API_KEY:       ${{ secrets.GEMINI_API_KEY }}
+      HATENA_ID:            ${{ secrets.HATENA_ID }}
+      HATENA_API_KEY:       ${{ secrets.HATENA_API_KEY }}
+      HATENA_BLOG_ID:       ${{ secrets.HATENA_BLOG_ID }}
+      X_CONSUMER_KEY:       ${{ secrets.X_CONSUMER_KEY }}
+      X_CONSUMER_SECRET:    ${{ secrets.X_CONSUMER_SECRET }}
+      X_ACCESS_TOKEN:       ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +26,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests google-genai
+        run: pip install requests google-genai requests-oauthlib
 
       - name: Run collector
         run: python collector.py
@@ -32,6 +36,9 @@ jobs:
 
       - name: Run publisher
         run: python publisher.py
+
+      - name: Run social
+        run: python social.py
 
       - name: Save results
         uses: actions/upload-artifact@v4
