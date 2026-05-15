@@ -33,23 +33,17 @@ def parse_article(filepath):
 
 def post_to_hatena(title, body):
     q = chr(34)
-    safe_title = title.replace("&", "&").replace("<", "<").replace(">", ">")
-    safe_body = body.replace("]]>", "]]]]>")
+    safe_title = title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    safe_body = body.replace("]]>", "]]]]><![CDATA[>")
     xml = "<" + "?xml version=" + q + "1.0" + q + " encoding=" + q + "utf-8" + q + "?" + ">"
-    xml += ""
-    xml += ""
-    xml += "" + HATENA_ID + ""
-    xml += ""
-    xml += "no"
-    xml += ""
+    xml += "<entry xmlns=" + q + "http://www.w3.org/2005/Atom" + q + " xmlns:app=" + q + "http://www.w3.org/2007/app" + q + ">"
+    xml += "<title>" + safe_title + "</title>"
+    xml += "<author><name>" + HATENA_ID + "</name></author>"
+    xml += "<content type=" + q + "text/x-markdown" + q + "><![CDATA[" + safe_body + "]]></content>"
+    xml += "<app:control><app:draft>no</app:draft></app:control>"
+    xml += "</entry>"
     endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
-    res = requests.post(
-        endpoint,
-        data=xml.encode("utf-8"),
-        headers={"Content-Type": "application/xml"},
-        auth=(HATENA_ID, HATENA_KEY),
-        timeout=30
-    )
+    res = requests.post(endpoint, data=xml.encode("utf-8"), headers={"Content-Type": "application/xml"}, auth=(HATENA_ID, HATENA_KEY), timeout=30)
     if res.status_code == 201:
         print("投稿成功!")
         return True
