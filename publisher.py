@@ -31,10 +31,10 @@ def parse_article(filepath):
     body = "\n".join(body_lines).strip() + CTA
     return title, body
 
-def make_xml(title, body):
+def post_to_hatena(title, body):
+    q = chr(34)
     safe_title = title.replace("&", "&").replace("<", "<").replace(">", ">")
     safe_body = body.replace("]]>", "]]]]>")
-    q = chr(34)
     xml = "<" + "?xml version=" + q + "1.0" + q + " encoding=" + q + "utf-8" + q + "?" + ">"
     xml += ""
     xml += ""
@@ -42,11 +42,7 @@ def make_xml(title, body):
     xml += ""
     xml += "no"
     xml += ""
-    return xml
-
-def post_to_hatena(title, body):
     endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
-    xml = make_xml(title, body)
     res = requests.post(
         endpoint,
         data=xml.encode("utf-8"),
