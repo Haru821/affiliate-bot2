@@ -18,7 +18,7 @@ def build_wsse():
     nonce = base64.b64encode(nonce_raw.encode()).decode()
     created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     digest = base64.b64encode(hashlib.sha1((nonce_raw + created + HATENA_KEY).encode()).digest()).decode()
-    return 'UsernameToken Username="' + HATENA_ID + '", PasswordDigest="' + digest + '", Nonce="' + nonce + '", Created="' + created + '"'
+    return "UsernameToken Username=\"" + HATENA_ID + "\", PasswordDigest=\"" + digest + "\", Nonce=\"" + nonce + "\", Created=\"" + created + "\""
 
 def load_articles():
     d = Path("articles")
@@ -39,7 +39,6 @@ def parse_article(filepath):
             title = line.replace("タイトル:", "").strip()
         elif not line.startswith("# ") and not line.startswith("タイトル:"):
             body_lines.append(line)
-
     body = "\n".join(body_lines).strip() + CTA
     return title, body
 
@@ -47,17 +46,14 @@ def post_to_hatena(title, body):
     endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
     safe_title = title.replace("&", "&").replace("<", "<").replace(">", ">")
     safe_body = body.replace("]]>", "]]]]>")
-    lines = [
-        '',
-        '',
-        '  ',
-        '  ' + HATENA_ID + '',
-        '  ',
-        '  no',
-        '',
-    ]
-    xml = "\n".join(lines)
-    print("送信XML先頭: " + xml[:100])
+    xml = "\n"
+    xml += "\n"
+    xml += "  \n"
+    xml += "  " + HATENA_ID + "\n"
+    xml += "  \n"
+    xml += "  no\n"
+    xml += ""
+    print("送信XML先頭: " + xml[:150])
     headers = {
         "X-WSSE": build_wsse(),
         "Content-Type": "application/xml; charset=utf-8",
