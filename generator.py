@@ -61,8 +61,9 @@ def generate_article(post, retries=5, wait=60):
                 print("  retry " + str(attempt) + "/" + str(retries) + " wait " + str(wait) + "s...")
                 time.sleep(wait)
             else:
-                print("  error: " + msg)
+                print("  error (skip): " + msg)
                 return None
+    print("  retry exhausted: gave up after " + str(retries) + " retries")
     return None
 
 def save_article(post, content):
