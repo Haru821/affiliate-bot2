@@ -8,6 +8,12 @@ from google import genai
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
+def main():
+    # モデル一覧確認
+    for m in client.models.list():
+        print(m.name)
+    return  # 一時的に処理を止める
+
 def load_latest_data():
     files = sorted(Path(".").glob("raw_data_*.json"), reverse=True)
     if not files:
