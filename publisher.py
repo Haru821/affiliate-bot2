@@ -1,10 +1,6 @@
 import os
 import requests
-import hashlib
-import base64
-import random
-import string
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 HATENA_ID  = os.environ.get("HATENA_ID", "haruharu_rl")
@@ -12,13 +8,6 @@ HATENA_KEY = os.environ.get("HATENA_API_KEY")
 BLOG_ID    = os.environ.get("HATENA_BLOG_ID", "haruharu-rl.hatenablog.com")
 
 CTA = "\n\n---\n\n## 今すぐITスキルを身につけるなら\n\n- [TECH CAMP](https://tech-camp.in/)\n- [DMM WEBCAMP](https://web-camp.io/)\n- [レバテックキャリア](https://levtech.jp/)\n"
-
-def build_wsse():
-    nonce_raw = "".join(random.choices(string.ascii_letters + string.digits, k=16))
-    nonce = base64.b64encode(nonce_raw.encode()).decode()
-    created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    digest = base64.b64encode(hashlib.sha1((nonce_raw + created + HATENA_KEY).encode()).digest()).decode()
-    return "UsernameToken Username=\"" + HATENA_ID + "\", PasswordDigest=\"" + digest + "\", Nonce=\"" + nonce + "\", Created=\"" + created + "\""
 
 def load_articles():
     d = Path("articles")
@@ -42,29 +31,35 @@ def parse_article(filepath):
     body = "\n".join(body_lines).strip() + CTA
     return title, body
 
-def post_to_hatena(title, body):
-    endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
+def make_xml(title, body):
     safe_title = title.replace("&", "&").replace("<", "<").replace(">", ">")
     safe_body = body.replace("]]>", "]]]]>")
-    xml = "\n"
-    xml += "\n"
-    xml += "  \n"
-    xml += "  " + HATENA_ID + "\n"
-    xml += "  \n"
-    xml += "  no\n"
+    q = chr(34)
+    xml = "<" + "?xml version=" + q + "1.0" + q + " encoding=" + q + "utf-8" + q + "?" + ">"
     xml += ""
-    print("送信XML先頭: " + xml[:150])
-    headers = {
-        "X-WSSE": build_wsse(),
-        "Content-Type": "application/xml; charset=utf-8",
-    }
-    res = requests.post(endpoint, data=xml.encode("utf-8"), headers=headers, timeout=30)
+    xml += ""
+    xml += "" + HATENA_ID + ""
+    xml += ""
+    xml += "no"
+    xml += ""
+    return xml
+
+def post_to_hatena(title, body):
+    endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
+    xml = make_xml(title, body)
+    res = requests.post(
+        endpoint,
+        data=xml.encode("utf-8"),
+        headers={"Content-Type": "application/xml"},
+        auth=(HATENA_ID, HATENA_KEY),
+        timeout=30
+    )
     if res.status_code == 201:
         print("投稿成功!")
         return True
     else:
         print("投稿失敗: " + str(res.status_code))
-        print(res.text[:500])
+        print(res.text[:300])
         return False
 
 def main():
