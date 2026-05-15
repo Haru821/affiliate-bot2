@@ -2,22 +2,16 @@ import os
 import requests
 import hashlib
 import base64
+import random
+import string
 from datetime import datetime, timezone
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
 HATENA_ID  = os.environ.get("HATENA_ID", "haruharu_rl")
 HATENA_KEY = os.environ.get("HATENA_API_KEY")
 BLOG_ID    = os.environ.get("HATENA_BLOG_ID", "haruharu-rl.hatenablog.com")
 
-AFFILIATE_LINKS = {
-    "TECHCAMP":   "https://tech-camp.in/",
-    "DMMWEBCAMP": "https://web-camp.io/",
-    "LEVTECH":    "https://levtech.jp/",
-}
-
-def get_cta():
-    return """
+CTA = """
 
 ---
 
@@ -31,66 +25,63 @@ def get_cta():
 - [レバテックキャリア - IT転職を相談する](https://levtech.jp/)
 """
 
-def build_wsse(username, api_key):
-    import random, string
+def build_wsse():
     nonce_raw = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
     nonce = base64.b64encode(nonce_raw.encode()).decode()
     created = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     digest = base64.b64encode(
-        hashlib.sha1((nonce_raw + created + api_key).encode()).digest()
+        hashlib.sha1((nonce_raw + created + HATENA_KEY).encode()).digest()
     ).decode()
-    return f'UsernameToken Username="{username}", PasswordDigest="{digest}", Nonce="{nonce}", Created="{created}"'
+    return f'UsernameToken Username="{HATENA_ID}", PasswordDigest="{digest}", Nonce="{nonce}", Created="{created}"'
 
 def load_articles():
     articles_dir = Path("articles")
     if not articles_dir.exists():
         print("articlesフォルダが見つかりません")
         return []
-    files = sorted(articles_dir.glob("*.md"), reverse=True)
     today = datetime.now().strftime("%Y%m%d")
-    result = [f for f in files if today in f.name]
-    print(f"本日の記事: {len(result)}件")
-    return result
+    files = [f for f in sorted(articles_dir.glob("*.md"), reverse=True) if today in f.name]
+    print(f"本日の記事: {len(files)}件")
+    return files
 
 def parse_article(filepath):
     with open(filepath, encoding="utf-8") as f:
-        lines = f.readlines()
+        text = f.read()
     title = ""
     body_lines = []
-    for line in lines:
+    for line in text.splitlines():
         if line.startswith("タイトル:"):
             title = line.replace("タイトル:", "").strip()
         elif not line.startswith("# "):
             body_lines.append(line)
-    content = "".join(body_lines).strip()
-    content += get_cta()
-    return title, content
+    body = "\n".join(body_lines).strip() + CTA
+    return title, body
 
-def post_to_hatena(title, content):
+def post_to_hatena(title, body):
     endpoint = f"https://blog.hatena.ne.jp/{HATENA_ID}/{BLOG_ID}/atom/entry"
-    wsse = build_wsse(HATENA_ID, HATENA_KEY)
-    xml_body = f'''
-
-  
-  {HATENA_ID}
-  <![CDATA[{content}]]>
-  no
-'''
+    # タイトルと本文の特殊文字をエスケープ
+    safe_title = title.replace("&", "&").replace("<", "<").replace(">", ">")
+    safe_body  = body.replace("]]>", "]]]]>")
+    xml = (
+        '\n'
+        '\n'
+        f'  \n'
+        f'  {HATENA_ID}\n'
+        f'  \n'
+        '  no\n'
+        ''
+    )
     headers = {
-        "X-WSSE": wsse,
-        "Content-Type": "application/xml",
+        "X-WSSE": build_wsse(),
+        "Content-Type": "application/xml; charset=utf-8",
     }
-    res = requests.post(endpoint, data=xml_body.encode("utf-8"), headers=headers, timeout=30)
+    res = requests.post(endpoint, data=xml.encode("utf-8"), headers=headers, timeout=30)
     if res.status_code == 201:
-        root = ET.fromstring(res.text)
-        ns = {"atom": "http://www.w3.org/2005/Atom"}
-        link = root.find("atom:link[@rel='alternate']", ns)
-        url = link.attrib["href"] if link is not None else "URL不明"
-        print(f"投稿成功: {url}")
+        print(f"投稿成功!")
         return True
     else:
         print(f"投稿失敗: {res.status_code}")
-        print(res.text[:300])
+        print(res.text[:500])
         return False
 
 def main():
@@ -101,13 +92,12 @@ def main():
     if not articles:
         print("本日の記事が見つかりません")
         return
-    print(f"{len(articles)}件の記事を投稿します")
     for filepath in articles:
-        print(f"\n投稿中: {filepath.name}")
-        title, content = parse_article(filepath)
+        print(f"投稿中: {filepath.name}")
+        title, body = parse_article(filepath)
         if not title:
             title = filepath.stem.replace("_", " ")
-        post_to_hatena(title, content)
-    print("\n全記事投稿完了!")
+        post_to_hatena(title, body)
+    print("全記事投稿完了!")
 
 main()
