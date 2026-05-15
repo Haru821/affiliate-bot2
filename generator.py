@@ -20,16 +20,17 @@ def load_latest_data():
 def generate_article(post, retries=5, wait=60):
     prompt = (
         "あなたはIT転職・プログラミング学習専門のブログライターです。\n"
-        "以下の海外エンジニアコミュニティの投稿をもとに、日本人読者向けの\n"
-        "SEO記事を日本語で書いてください。\n\n"
+        "以下の海外エンジニアコミュニティの投稿をもとに、日本人読者向けのSEO記事を日本語で書いてください。\n\n"
         "【元投稿タイトル】" + post["title"] + "\n"
         "【元投稿内容】" + post["body"][:300] + "\n"
         "【スコア】" + str(post["score"]) + "\n"
         "【出典】" + post["url"] + "\n\n"
         "【記事の要件】\n"
         "- 文字数: 1500〜2000字\n"
-        "- H2見出し3〜4個\n"
-        "- 海外エンジニアのリアルな声として元投稿を引用\n"
+        "- ## や ### の見出しを使って構造化すること\n"
+        "- 箇条書きは - を使うこと（* は使わない）\n"
+        "- Markdownとして正しく整形すること\n"
+        "- 海外エンジニアのリアルな声として元投稿を引用すること\n"
         "- プログラミングスクール（TECH CAMP、DMM WEBCAMP等）への自然な誘導文をCTAとして最後に追加\n\n"
         "【出力形式】\n"
         "タイトル: （SEOタイトル）\n"
@@ -45,14 +46,11 @@ def generate_article(post, retries=5, wait=60):
             return response.text
         except Exception as e:
             msg = str(e)
-            if "503" in msg or "UNAVAILABLE" in msg:
-                print(f"  503エラー（試行{attempt}/{retries}）: {wait}秒待ってリトライします...")
-                time.sleep(wait)
-            elif "429" in msg or "EXHAUSTED" in msg:
-                print(f"  429エラー（試行{attempt}/{retries}）: {wait}秒待ってリトライします...")
+            if "503" in msg or "UNAVAILABLE" in msg or "429" in msg or "EXHAUSTED" in msg:
+                print("  エラー（試行" + str(attempt) + "/" + str(retries) + "）: " + str(wait) + "秒待ってリトライします...")
                 time.sleep(wait)
             else:
-                print(f"  生成エラー: {msg}")
+                print("  生成エラー: " + msg)
                 return None
     print("  リトライ上限に達しました。スキップします。")
     return None
