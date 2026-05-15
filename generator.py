@@ -3,11 +3,10 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
-import google.generativeai as genai
+from google import genai
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 def load_latest_data():
     files = sorted(Path(".").glob("raw_data_*.json"), reverse=True)
@@ -25,7 +24,7 @@ SEO記事を日本語で書いてください。
 
 【元投稿タイトル】{post['title']}
 【元投稿内容】{post['body'][:300]}
-【いいね数】{post['score']}
+【スコア】{post['score']}
 【出典】{post['url']}
 
 【記事の要件】
@@ -43,7 +42,10 @@ SEO記事を日本語で書いてください。
 （本文）
 """
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
         return response.text
     except Exception as e:
         print(f"生成エラー: {e}")
