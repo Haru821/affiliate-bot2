@@ -75,6 +75,7 @@ def post_to_hatena(title, body):
         "X-WSSE": build_wsse(),
         "Content-Type": "application/xml; charset=utf-8",
     }
+    print(f"送信XML: {xml[:200]}")
     res = requests.post(endpoint, data=xml.encode("utf-8"), headers=headers, timeout=30)
     if res.status_code == 201:
         print(f"投稿成功!")
