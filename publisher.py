@@ -73,7 +73,7 @@ def post_to_hatena(title, content):
 
   
   {HATENA_ID}
-  {content}
+  <![CDATA[{content}]]>
   no
 '''
     headers = {
