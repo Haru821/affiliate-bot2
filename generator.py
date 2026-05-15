@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 from google import genai
@@ -16,51 +17,58 @@ def load_latest_data():
     with open(files[0], encoding="utf-8") as f:
         return json.load(f)
 
-def generate_article(post):
-    prompt = f"""
-あなたはIT転職・プログラミング学習専門のブログライターです。
-以下の海外エンジニアコミュニティの投稿をもとに、日本人読者向けの
-SEO記事を日本語で書いてください。
-
-【元投稿タイトル】{post['title']}
-【元投稿内容】{post['body'][:300]}
-【スコア】{post['score']}
-【出典】{post['url']}
-
-【記事の要件】
-- 文字数: 1500〜2000字
-- H2見出し3〜4個
-- 「海外エンジニアのリアルな声」として元投稿を引用
-- 日本のプログラミングスクール（TECH CAMP、DMM WEBCAMP等）への
-  自然な誘導文をCTAとして最後に追加
-
-【出力形式】
-タイトル: （SEOタイトル）
----
-（本文）
-"""
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
-        return response.text
-    except Exception as e:
-        print(f"生成エラー: {e}")
-        return None
+def generate_article(post, retries=5, wait=60):
+    prompt = (
+        "あなたはIT転職・プログラミング学習専門のブログライターです。\n"
+        "以下の海外エンジニアコミュニティの投稿をもとに、日本人読者向けの\n"
+        "SEO記事を日本語で書いてください。\n\n"
+        "【元投稿タイトル】" + post["title"] + "\n"
+        "【元投稿内容】" + post["body"][:300] + "\n"
+        "【スコア】" + str(post["score"]) + "\n"
+        "【出典】" + post["url"] + "\n\n"
+        "【記事の要件】\n"
+        "- 文字数: 1500〜2000字\n"
+        "- H2見出し3〜4個\n"
+        "- 海外エンジニアのリアルな声として元投稿を引用\n"
+        "- プログラミングスクール（TECH CAMP、DMM WEBCAMP等）への自然な誘導文をCTAとして最後に追加\n\n"
+        "【出力形式】\n"
+        "タイトル: （SEOタイトル）\n"
+        "---\n"
+        "（本文）"
+    )
+    for attempt in range(1, retries + 1):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            return response.text
+        except Exception as e:
+            msg = str(e)
+            if "503" in msg or "UNAVAILABLE" in msg:
+                print(f"  503エラー（試行{attempt}/{retries}）: {wait}秒待ってリトライします...")
+                time.sleep(wait)
+            elif "429" in msg or "EXHAUSTED" in msg:
+                print(f"  429エラー（試行{attempt}/{retries}）: {wait}秒待ってリトライします...")
+                time.sleep(wait)
+            else:
+                print(f"  生成エラー: {msg}")
+                return None
+    print("  リトライ上限に達しました。スキップします。")
+    return None
 
 def save_article(post, content):
     articles_dir = Path("articles")
     articles_dir.mkdir(exist_ok=True)
     date_str = datetime.now().strftime("%Y%m%d")
-    safe_title = re.sub(r'[^\w]', '_', post['title'][:30])
-    filename = articles_dir / f"{date_str}_{safe_title}.md"
+    safe_title = re.sub(r"[^\w]", "_", post["title"][:30])
+    filename = articles_dir / (date_str + "_" + safe_title + ".md")
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(f"# 元ネタ: {post['title']}\n")
-        f.write(f"# 出典: {post['url']}\n")
-        f.write(f"# スコア: {post['score']}\n\n")
+        f.write("# 元ネタ: " + post["title"] + "\n")
+        f.write("# 出典: " + post["url"] + "\n")
+        f.write("# スコア: " + str(post["score"]) + "\n\n")
         f.write(content)
-    print(f"保存: {filename}")
+    print("  保存: " + str(filename))
     return filename
 
 def main():
@@ -68,15 +76,15 @@ def main():
     if not posts:
         return
     top_posts = posts[:3]
-    print(f"上位{len(top_posts)}件の投稿から記事を生成します")
+    print("上位" + str(len(top_posts)) + "件の投稿から記事を生成します")
     for i, post in enumerate(top_posts, 1):
-        print(f"\n[{i}/{len(top_posts)}] 生成中: {post['title'][:50]}...")
+        print("\n[" + str(i) + "/" + str(len(top_posts)) + "] 生成中: " + post["title"][:50] + "...")
         content = generate_article(post)
         if content:
             save_article(post, content)
-            print(f"  完了!")
+            print("  完了!")
         else:
-            print(f"  スキップ")
+            print("  スキップ")
     print("\n全記事生成完了!")
 
 main()
