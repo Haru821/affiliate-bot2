@@ -8,7 +8,7 @@ HATENA_KEY       = os.environ.get("HATENA_API_KEY")
 BLOG_ID          = os.environ.get("HATENA_BLOG_ID", "haruharu-rl.hatenablog.com")
 UNSPLASH_KEY     = os.environ.get("UNSPLASH_ACCESS_KEY")
 
-CTA = "\n\n---\n\n## 今すぐITスキルを身につけるなら\n\n- [TECH CAMP](https://tech-camp.in/)\n- [DMM WEBCAMP](https://web-camp.io/)\n- [レバテックキャリア](https://levtech.jp/)\n"
+CTA = "\n\n---\n\n## ???IT???????????\n\n- [TECH CAMP](https://tech-camp.in/)\n- [DMM WEBCAMP](https://web-camp.io/)\n- [?????????](https://levtech.jp/)\n"
 
 def get_image_url(keyword):
     if not UNSPLASH_KEY:
@@ -18,17 +18,17 @@ def get_image_url(keyword):
         if r.status_code == 200:
             return r.json()["urls"]["regular"]
     except Exception as e:
-        print("画像取得エラー: " + str(e))
+        print("???????: " + str(e))
     return None
 
 def load_articles():
     d = Path("articles")
     if not d.exists():
-        print("articlesフォルダが見つかりません")
+        print("articles????????????")
         return []
     today = datetime.now().strftime("%Y%m%d")
     files = [f for f in sorted(d.glob("*.md"), reverse=True) if today in f.name]
-    print("本日の記事: " + str(len(files)) + "件")
+    print("?????: " + str(len(files)) + "?")
     return files
 
 def parse_article(filepath):
@@ -36,9 +36,9 @@ def parse_article(filepath):
     title = ""
     body_lines = []
     for line in text.splitlines():
-        if line.startswith("タイトル:"):
-            title = line.replace("タイトル:", "").strip()
-        elif not line.startswith("# ") and not line.startswith("タイトル:"):
+        if line.startswith("????:"):
+            title = line.replace("????:", "").strip()
+        elif not line.startswith("# ") and not line.startswith("????:"):
             body_lines.append(line)
     body = "\n".join(body_lines).strip() + CTA
     return title, body
@@ -73,31 +73,31 @@ def post_to_hatena(title, body):
     endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
     res = requests.post(endpoint, data=xml.encode("utf-8"), headers={"Content-Type": "application/xml"}, auth=(HATENA_ID, HATENA_KEY), timeout=30)
     if res.status_code == 201:
-        print("投稿成功!")
+        print("????!")
         return True
     else:
-        print("投稿失敗: " + str(res.status_code))
+        print("????: " + str(res.status_code))
         print(res.text[:300])
         return False
 
 def main():
     if not HATENA_KEY:
-        print("HATENA_API_KEY が未設定です")
+        print("HATENA_API_KEY ??????")
         return
     articles = load_articles()
     if not articles:
-        print("本日の記事が見つかりません")
+        print("?????????????")
         return
     for filepath in articles:
-        print("投稿中: " + filepath.name)
+        print("???: " + filepath.name)
         title, body = parse_article(filepath)
         if not title:
             title = filepath.stem.replace("_", " ")
         image_url = get_image_url("programming technology engineer")
         if image_url:
-            print("画像取得成功!")
+            print("??????!")
             body = add_image_to_body(body, image_url)
         post_to_hatena(title, body)
-    print("全記事投稿完了!")
+    print("???????!")
 
 main()
