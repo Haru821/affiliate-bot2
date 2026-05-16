@@ -1,34 +1,46 @@
+# -*- coding: utf-8 -*-
 import os
 import requests
 from datetime import datetime
 from pathlib import Path
 
-HATENA_ID        = os.environ.get("HATENA_ID", "haruharu_rl")
-HATENA_KEY       = os.environ.get("HATENA_API_KEY")
-BLOG_ID          = os.environ.get("HATENA_BLOG_ID", "haruharu-rl.hatenablog.com")
-UNSPLASH_KEY     = os.environ.get("UNSPLASH_ACCESS_KEY")
+HATENA_ID  = os.environ.get("HATENA_ID", "haruharu_rl")
+HATENA_KEY = os.environ.get("HATENA_API_KEY")
+BLOG_ID    = os.environ.get("HATENA_BLOG_ID", "haruharu-rl.hatenablog.com")
+UNSPLASH_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")
 
-CTA = "\n\n---\n\n## ???IT???????????\n\n- [TECH CAMP](https://tech-camp.in/)\n- [DMM WEBCAMP](https://web-camp.io/)\n- [?????????](https://levtech.jp/)\n"
+CTA = (
+    "\n\n---\n\n"
+    "## おすすめITスクール・転職支援\n\n"
+    "- [ポテパンキャンプ](https://camp.potepan.com/)\n"
+    "- [NinjaCODE](https://ninja-code.jp/)\n"
+    "- [DMM WEBCAMP](https://web-camp.io/)\n"
+)
 
 def get_image_url(keyword):
     if not UNSPLASH_KEY:
         return None
     try:
-        r = requests.get("https://api.unsplash.com/photos/random", params={"query": keyword, "orientation": "landscape"}, headers={"Authorization": "Client-ID " + UNSPLASH_KEY}, timeout=10)
+        r = requests.get(
+            "https://api.unsplash.com/photos/random",
+            params={"query": keyword, "orientation": "landscape"},
+            headers={"Authorization": "Client-ID " + UNSPLASH_KEY},
+            timeout=10
+        )
         if r.status_code == 200:
             return r.json()["urls"]["regular"]
     except Exception as e:
-        print("???????: " + str(e))
+        print("image error: " + str(e))
     return None
 
 def load_articles():
     d = Path("articles")
     if not d.exists():
-        print("articles????????????")
+        print("articles not found")
         return []
     today = datetime.now().strftime("%Y%m%d")
     files = [f for f in sorted(d.glob("*.md"), reverse=True) if today in f.name]
-    print("?????: " + str(len(files)) + "?")
+    print("articles: " + str(len(files)))
     return files
 
 def parse_article(filepath):
@@ -36,9 +48,9 @@ def parse_article(filepath):
     title = ""
     body_lines = []
     for line in text.splitlines():
-        if line.startswith("????:"):
-            title = line.replace("????:", "").strip()
-        elif not line.startswith("# ") and not line.startswith("????:"):
+        if line.startswith("タイトル:"):
+            title = line.replace("タイトル:", "").strip()
+        elif not line.startswith("# ") and not line.startswith("タイトル:"):
             body_lines.append(line)
     body = "\n".join(body_lines).strip() + CTA
     return title, body
@@ -71,33 +83,39 @@ def post_to_hatena(title, body):
     xml += "<app:control><app:draft>no</app:draft></app:control>"
     xml += "</entry>"
     endpoint = "https://blog.hatena.ne.jp/" + HATENA_ID + "/" + BLOG_ID + "/atom/entry"
-    res = requests.post(endpoint, data=xml.encode("utf-8"), headers={"Content-Type": "application/xml"}, auth=(HATENA_ID, HATENA_KEY), timeout=30)
+    res = requests.post(
+        endpoint,
+        data=xml.encode("utf-8"),
+        headers={"Content-Type": "application/xml"},
+        auth=(HATENA_ID, HATENA_KEY),
+        timeout=30
+    )
     if res.status_code == 201:
-        print("????!")
+        print("posted!")
         return True
     else:
-        print("????: " + str(res.status_code))
+        print("error: " + str(res.status_code))
         print(res.text[:300])
         return False
 
 def main():
     if not HATENA_KEY:
-        print("HATENA_API_KEY ??????")
+        print("HATENA_API_KEY not set")
         return
     articles = load_articles()
     if not articles:
-        print("?????????????")
+        print("no articles today")
         return
     for filepath in articles:
-        print("???: " + filepath.name)
+        print("posting: " + filepath.name)
         title, body = parse_article(filepath)
         if not title:
             title = filepath.stem.replace("_", " ")
         image_url = get_image_url("programming technology engineer")
         if image_url:
-            print("??????!")
+            print("image ok!")
             body = add_image_to_body(body, image_url)
         post_to_hatena(title, body)
-    print("???????!")
+    print("complete!")
 
 main()
