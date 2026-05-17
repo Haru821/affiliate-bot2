@@ -13,6 +13,7 @@ jobs:
       HATENA_ID:             ${{ secrets.HATENA_ID }}
       HATENA_API_KEY:        ${{ secrets.HATENA_API_KEY }}
       HATENA_BLOG_ID:        ${{ secrets.HATENA_BLOG_ID }}
+      UNSPLASH_ACCESS_KEY:   ${{ secrets.UNSPLASH_ACCESS_KEY }}
       X_CONSUMER_KEY:        ${{ secrets.X_CONSUMER_KEY }}
       X_CONSUMER_SECRET:     ${{ secrets.X_CONSUMER_SECRET }}
       X_ACCESS_TOKEN:        ${{ secrets.X_ACCESS_TOKEN }}
