@@ -48,9 +48,9 @@ def parse_article(filepath):
     title = ""
     body_lines = []
     for line in text.splitlines():
-        if line.startswith("タイトル:"):
-            title = line.replace("タイトル:", "").strip()
-        elif not line.startswith("# ") and not line.startswith("タイトル:"):
+        if line.startswith("タイトル:") or line.startswith("タイトル："):
+            title = line.replace("タイトル：", "").replace("タイトル:", "").strip()
+        elif not line.startswith("# ") and not line.startswith("タイトル:") and not line.startswith("タイトル："):
             body_lines.append(line)
     body = "\n".join(body_lines).strip() + CTA
     return title, body
