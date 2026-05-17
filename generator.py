@@ -39,11 +39,12 @@ def generate_article(post, retries=5, wait=60):
         "【要件】\n"
         "- 2000-2500字\n"
         "- 導入文3行以内で「この記事でわかること」を明示\n"
-        "- 導入文直後に [:contents] を記載\n"
+        "- 導入文の直後に、他のテキストと混ぜずに必ず単独行で [:contents] とだけ書くこと\n"
         "- ## ### で4-5セクション構造化\n"
         "- 箇条書きは - を使う\n"
         "- 重要キーワードは **太字**\n"
         + req1 + req2 +
+        "- <div class=\"box\">と</div>は必ず単独行に書くこと。囲んだ中身はMarkdownのリスト形式で書くこと\n"
         "- 2-3行ごとに空行\n"
         "- 各段落4行以内\n"
         "- 実際に転職した人のリアルなエピソードや声を盛り込む\n"
@@ -66,12 +67,29 @@ def generate_article(post, retries=5, wait=60):
     print("  retry exhausted: gave up after " + str(retries) + " retries")
     return None
 
+def fix_contents_tag(content):
+    content = re.sub(r'\[:contents\]', '', content)
+    lines = content.splitlines()
+    result = []
+    inserted = False
+    for line in lines:
+        if not inserted and line.startswith("## "):
+            result.append("")
+            result.append("[:contents]")
+            result.append("")
+            inserted = True
+        result.append(line)
+    if not inserted:
+        result.insert(0, "[:contents]\n")
+    return "\n".join(result)
+
 def save_article(post, content):
     articles_dir = Path("articles")
     articles_dir.mkdir(exist_ok=True)
     date_str = datetime.now().strftime("%Y%m%d")
     safe_title = re.sub(r"[^\w]", "_", post["title"][:30])
     filename = articles_dir / (date_str + "_" + safe_title + ".md")
+    content = fix_contents_tag(content)
     with open(filename, "w", encoding="utf-8") as f:
         f.write("# " + post["title"] + "\n")
         f.write("# " + post["url"] + "\n")
